@@ -1,0 +1,57 @@
+(defrule moveWillyEast
+  ?h<-(introducedKey right)
+  (not (fire))
+  =>
+  (retract ?h)
+  (moveWilly east))
+  
+(defrule moveWillyWest
+  ?h<-(introducedKey left)
+  (not (fire))
+  =>
+  (retract ?h)
+  (moveWilly west))
+  
+(defrule moveWillySouth
+  ?h<-(introducedKey down)
+  (not (fire))
+  =>
+  (retract ?h)
+  (moveWilly south))
+  
+(defrule moveWillyNorth
+  ?h<-(introducedKey up)
+  (not (fire))
+  =>
+  (retract ?h)
+  (moveWilly north))
+
+(defrule fireWillyEast
+  ?h<-(introducedKey right)
+  ?h2<-(fire)
+  =>
+  (retract ?h ?h2)
+  (fireArrow east))
+  
+(defrule fireWillyWest
+  ?h<-(introducedKey left)
+  ?h2<-(fire)
+  =>
+  (retract ?h ?h2)
+  (fireArrow west))
+  
+(defrule fireWillySouth
+  ?h<-(introducedKey down)
+  ?h2<-(fire)
+  =>
+  (retract ?h ?h2)
+  (fireArrow south))
+  
+(defrule fireWillyNorth
+  ?h<-(introducedKey up)
+  ?h2<-(fire)
+  =>
+  (retract ?h ?h2)
+  (fireArrow north))
+
+

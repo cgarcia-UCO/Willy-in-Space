@@ -1,0 +1,551 @@
+(defmodule InternalFunctions (export deffunction moveWilly fireArrow) (export deftemplate heading firing))
+
+(deffunction moveWilly (?move)
+	(if (or (eq ?move north) (eq ?move south) (eq ?move east) (eq ?move west))
+	  then
+	    (assert (heading ?move))
+	    (focus InternalMemory)
+	))
+
+(deffunction fireArrow (?move)
+	(if (or (eq ?move north) (eq ?move south) (eq ?move east) (eq ?move west))
+	  then
+	    (assert (firing ?move))
+	    (focus InternalMemory)
+	))
+
+
+
+							
+(defmodule MAIN (export deftemplate directions hasArrow percepts)
+				(import InternalFunctions deffunction moveWilly fireArrow)
+				(import InternalFunctions deftemplate heading firing))
+
+(deffacts base
+	(directions north south east west)
+	(hasArrow)
+	
+	; Necesarios para que se defina implícitamente en MAIN la plantilla. Se eliminan pasando el foco a Initialiser al antes de iniciar la ejecución
+	(percepts)
+	(heading)
+	(firing)
+	)
+
+(defmodule InternalMemory (export deftemplate cell at visitingCell) (import MAIN deftemplate ?ALL)
+						(import InternalFunctions deftemplate ?ALL))
+	
+(deffunction visitCell (?row ?column) ;He creado esta función, pero el código que te bajaste debe hacer algo parecido a ésto. Sólo habría que añadirle lo de almacenar en memoria los hechos cell de celdas exploradas
+	(assert (visitingCell ?row ?column))
+	(focus InternalMemory)
+	)
+
+(deftemplate cell (slot row) (slot column) (multislot contents)) ;IMPORTANTE: No debe haber más de un hecho cell con misma row y column
+
+(deftemplate at (slot item) (slot row) (slot column))
+
+(deftemplate numMoves (slot numMoves))
+
+(deffacts internalVariables
+	(rows 1 2 3 4 5 6 7 8 9)
+	(columns 1 2 3 4 5 6 7 8 9)
+	(maxRows 9)
+	(maxColumns 9)
+	(numMoves (numMoves 0))
+	(maxMoves 1000)
+	(internalHasArrow)
+	)
+
+(defrule checkDoubleVisit
+	(exists
+		(visitingCell ?row ?column)
+		(or 
+			(visitingCell ~?row ?)
+			(visitingCell ? ~?column)
+		)
+	)
+	=>
+	;(printout t "You are cheating!" crlf)
+	(assert (cheat)) ;Utilizar este hecho para finalizar la ejecución en execute
+	)
+	
+(defrule firingArrowNorthAndHitting
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing north)
+	(at (item W) (row ?row) (column ?column))
+	?h3<-(at (item S) (row ?row2&:(< ?row2 ?row)) (column ?column))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h5<-(percepts $?)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing north from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h3 ?h4 ?h5 ?h6)
+	(assert (visitingCell ?row ?column));Para reinicar las percepciones
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	(assert (hasKilledTheSnake))
+	)	
+		
+(defrule firingArrowSouthAndHitting
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing south)
+	(at (item W) (row ?row) (column ?column))
+	?h3<-(at (item S) (row ?row2&:(> ?row2 ?row)) (column ?column))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h5<-(percepts $?)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing south from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h3 ?h4 ?h5 ?h6)
+	(assert (visitingCell ?row ?column));Para reinicar las percepciones
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	(assert (hasKilledTheSnake))
+	)	
+		
+(defrule firingArrowWestAndHitting
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing west)
+	(at (item W) (row ?row) (column ?column))
+	?h3<-(at (item S) (row ?row) (column ?column2&:(< ?column2 ?column)))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h5<-(percepts $?)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing west from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h3 ?h4 ?h5 ?h6)
+	(assert (visitingCell ?row ?column));Para reinicar las percepciones
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	(assert (hasKilledTheSnake))
+	)	
+		
+(defrule firingArrowEastAndHitting
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing east)
+	(at (item W) (row ?row) (column ?column))
+	?h3<-(at (item S) (row ?row) (column ?column2&:(> ?column2 ?column)))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h5<-(percepts $?)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing east from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h3 ?h4 ?h5 ?h6)
+	(assert (visitingCell ?row ?column));Para reinicar las percepciones
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	(assert (hasKilledTheSnake))
+	)	
+		
+(defrule firingArrowNorthAndMissing
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing north)
+	(at (item W) (row ?row) (column ?column))
+	(not (at (item S) (row ?row2&:(< ?row2 ?row)) (column ?column)))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing north from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h4 ?h6)
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)	
+		
+(defrule firingArrowSouthAndMissing
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing south)
+	(at (item W) (row ?row) (column ?column))
+	(not (at (item S) (row ?row2&:(> ?row2 ?row)) (column ?column)))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing south from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h4 ?h6)
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)	
+		
+(defrule firingArrowWestAndMissing
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing west)
+	(at (item W) (row ?row) (column ?column))
+	(not (at (item S) (row ?row) (column ?column2&:(< ?column2 ?column))))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing west from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h4 ?h6)
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)	
+		
+(defrule firingArrowEastAndMissing
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(firing east)
+	(at (item W) (row ?row) (column ?column))
+	(not (at (item S) (row ?row) (column ?column2&:(> ?column2 ?column))))
+	?h2<-(numMoves (numMoves ?numMoves))
+	?h4<-(hasArrow)
+	?h6<-(internalHasArrow)
+	=>
+	;(printout t "Firing east from " ?row " " ?column crlf)
+	(retract ?h ?h2 ?h4 ?h6)
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)	
+		
+(defrule initMovementNorth
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading north)
+	(at (item W) (row ?row&:(> ?row 1)) (column ?column))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2 ?h3)
+	(assert (visitingCell (- ?row 1) ?column))
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+	
+(defrule protectedNorthMovement
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading north)
+	(at (item W) (row ?row&:(<= ?row 1)) (column ?column))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2)
+	(assert (visitingCell ?row ?column))
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+
+(defrule initMovementSouth
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading south)
+	(maxRows ?maxRows)
+	(at (item W) (row ?row&:(< ?row ?maxRows)) (column ?column))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2 ?h3)
+	(assert (visitingCell (+ ?row 1) ?column))
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+
+(defrule protectedSouthMovement
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading south)
+	(maxRows ?maxRows)
+	(at (item W) (row ?row&:(>= ?row ?maxRows)) (column ?column))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2)
+	(assert (visitingCell ?row ?column))
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+
+(defrule initMovementEast
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading east)
+	(maxColumns ?maxColumns)
+	(at (item W) (row ?row) (column ?column&:(< ?column ?maxColumns)))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2 ?h3)
+	(assert (visitingCell ?row (+ ?column 1)))
+	;(printout t "Moving to east" crlf)
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+
+(defrule protectedEastMovement
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading east)
+	(maxColumns ?maxColumns)
+	(at (item W) (row ?row) (column ?column&:(>= ?column ?maxColumns)))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2)
+	(assert (visitingCell ?row ?column))
+	;(printout t "Protected east movement" crlf)
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+
+(defrule initMovementWest
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading west)
+	(at (item W) (row ?row) (column ?column&:(> ?column 1)))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2 ?h3)
+	(assert (visitingCell ?row (- ?column 1)))
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+
+(defrule protectedWestMovement
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(heading west)
+	(at (item W) (row ?row) (column ?column&:(<= ?column 1)))
+	(maxMoves ?maxMoves)
+	?h2<-(numMoves (numMoves ?numMoves&:(< ?numMoves ?maxMoves)))
+	?h3<-(percepts $?)
+	=>
+	(retract ?h ?h2)
+	(assert (visitingCell ?row ?column))
+	(assert (numMoves (numMoves (+ ?numMoves 1))))
+	)
+
+(defrule initVisitNewCell
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(visitingCell ?row ?column)
+	?h2<-(at (item W))
+	?h4<-(directions $?)
+	(not (or 
+		(visitingCell ~?row ?)
+		(visitingCell ? ~?column)
+	))
+	(not (cell (row ?row) (column ?column)))
+	(not (at (item A) (row ?row) (column ?column)))
+	(not (at (item S) (row ?row) (column ?column)))
+	(not (at (item O) (row ?row) (column ?column)))
+	=>
+	(retract ?h ?h2 ?h4)
+	(assert (at (item W) (row ?row) (column ?column)))
+	(assert (percepts))
+	;(printout t "Visiting new cell " ?row " " ?column crlf)
+	(assert (directions))
+	(assert (cell (row ?row) (column ?column) (contents)))
+	(set-strategy random); Para asegurarme de que no la cambian ellos
+	)
+
+(defrule initVisitOldCell
+	(not (or (cheat) (died) (won))) ;Condiciones para parar la ejeución
+	?h<-(visitingCell ?row ?column)
+	?h2<-(at (item W))
+	?h4<-(directions $?)
+	(not (or 
+		(visitingCell ~?row ?)
+		(visitingCell ? ~?column)
+	))
+	(cell (row ?row) (column ?column))
+	(not (at (item A) (row ?row) (column ?column)))
+	(not (at (item S) (row ?row) (column ?column)))
+	(not (at (item O) (row ?row) (column ?column)))
+	=>
+	(retract ?h ?h2 ?h4)
+	(assert (at (item W) (row ?row) (column ?column)))
+	(assert (percepts))
+	(assert (directions))
+	;(assert (cell (row ?row) (column ?column) (contents)))
+	(set-strategy random); Para asegurarme de que no la cambian ellos
+	)
+
+(defrule addNorthPosibility
+	(maxRows ?maxRows)
+	(maxColumns ?maxColumns)
+	(at (item W) (row ?row&:(> ?row 1)) (column ?column))
+	?h<-(directions $?directions)
+	(not (directions $? north $?))
+	=>
+	(retract ?h)
+	(assert (directions $?directions north)))
+
+(defrule addSouthPosibility
+	(maxRows ?maxRows)
+	(maxColumns ?maxColumns)
+	(at (item W) (row ?row&:(< ?row ?maxRows)) (column ?column))
+	?h<-(directions $?directions)
+	(not (directions $? south $?))
+	=>
+	(retract ?h)
+	(assert (directions $?directions south)))
+
+(defrule addEastPosibility
+	(maxRows ?maxRows)
+	(maxColumns ?maxColumns)
+	(at (item W) (row ?row) (column ?column&:(< ?column ?maxColumns)))
+	?h<-(directions $?directions)
+	(not (directions $? east $?))
+	=>
+	(retract ?h)
+	(assert (directions $?directions east)))
+
+(defrule addWestPosibility
+	(maxRows ?maxRows)
+	(maxColumns ?maxColumns)
+	(at (item W) (row ?row) (column ?column&:(> ?column 1)))
+	?h<-(directions $?directions)
+	(not (directions $? west $?))
+	=>
+	(retract ?h)
+	(assert (directions $?directions west)))
+
+(defrule youDieByMoves
+	(maxMoves ?maxMoves)
+	(numMoves (numMoves ?numMoves&:(>= ?numMoves ?maxMoves)))
+	?h<-(directions $?)
+	=>
+	(retract ?h)
+	(assert (died))
+	)
+
+(defrule youDie
+	?h<-(visitingCell ?row ?column)
+	?h2<-(directions $?)
+	?h3<-(at (item W))
+	(or
+		(at (item A) (row ?row) (column ?column))
+		(at (item S) (row ?row) (column ?column))
+	)
+	=>
+	(retract ?h ?h2 ?h3)
+	(assert (at (item W) (row ?row) (column ?column)))
+	;(printout t "You died!" crlf)
+	(assert (died)) ;Usar algún hecho de este tipo para que el módulo execute no avance más, por mucho que lo intente el alumno.
+	)
+
+(defrule youWin
+	?h<-(visitingCell ?row ?column)
+	(at (item O) (row ?row) (column ?column))
+	(not (at (item S) (row ?row) (column ?column)))
+	(not (cell (row ?row) (column ?column)))
+	?h2<-(directions $?)
+	?h3<-(at (item W))
+	=>
+	;(printout t "You won!" crlf)
+	(retract ?h ?h2 ?h3)
+	(assert (cell (row ?row) (column ?column) (contents O)))
+	(assert (percepts O))
+	(assert (at (item W) (row ?row) (column ?column)))
+	(assert (won)) ;Usar algún hecho de este tipo para que el módulo execute no avance más, por mucho que lo intente el alumno.
+	)
+
+(defrule youWin2
+	?h<-(visitingCell ?row ?column)
+	(at (item O) (row ?row) (column ?column))
+	(not (at (item S) (row ?row) (column ?column)))
+	?h2<-(cell (row ?row) (column ?column) (contents $?contents))
+	?h3<-(directions $?)
+	?h4<-(at (item W))
+	=>
+	;(printout t "You won!" crlf)
+	(retract ?h ?h3 ?h4)
+	(modify ?h2 (contents $?contents O))
+	(assert (percepts O))
+	(assert (at (item W) (row ?row) (column ?column)))
+	(assert (won)) ;Usar algún hecho de este tipo para que el módulo execute no avance más, por mucho que lo intente el alumno.
+	)
+	
+(defrule addTremorPercept
+	;(visitingCell ?row ?column)
+	(at (item W) (row ?row) (column ?column))
+	?h2<-(cell (row ?row) (column ?column) (contents $?contents))
+	?h<-(percepts $?percepts)
+	(not (percepts $? Tremor $?))
+	(or
+		(at (item A) (row ?row) (column =(- ?column 1)))
+		(at (item A) (row ?row) (column =(+ ?column 1)))
+		(at (item A) (row =(- ?row 1)) (column ?column))
+		(at (item A) (row =(+ ?row 1)) (column ?column))
+	)
+	=>
+	(retract ?h)
+	(assert (percepts $?percepts Tremor))
+	(modify ?h2 (contents $?contents A)))
+
+(defrule removeSoundPercepts
+	(not (at (item S)))
+	?h<-(cell (contents $?head S $?tail))
+	=>
+	(modify ?h (contents $?head $?tail))
+	)
+
+(defrule addSoundPercept
+	;(visitingCell ?row ?column)
+	(at (item W) (row ?row) (column ?column))
+	?h2<-(cell (row ?row) (column ?column) (contents $?contents))
+	?h<-(percepts $?percepts)
+	(not (percepts $? Sound $?))
+	(or
+		(at (item S) (row ?row) (column =(- ?column 1)))
+		(at (item S) (row ?row) (column =(+ ?column 1)))
+		(at (item S) (row =(- ?row 1)) (column ?column))
+		(at (item S) (row =(+ ?row 1)) (column ?column))
+	)
+	=>
+	(retract ?h)
+	(assert (percepts $?percepts Sound))
+	(modify ?h2 (contents $?contents S)))
+
+
+
+
+
+(defmodule Initialiser (import MAIN deftemplate ?ALL) (import InternalMemory deftemplate ?ALL)
+						(import InternalFunctions deftemplate ?ALL))
+(defrule initDirections
+	(not (percepts $?))
+	(not (heading $?))
+	(not (firing $?))
+	(not (cheat $?))
+	(not (died $?))
+	(not (won $?))
+	(at (item W) (row ?row) (column ?column))
+	(not (cell (row ?row) (column ?column)))
+	=>
+	(assert (visitingCell ?row ?column))
+	;(printout t "Visiting initial cell" crlf)
+	(focus InternalMemory)
+	)
+
+(defrule removePerceptsAt
+	?h<-(percepts $?)
+	(not (cell (row ?row) (column ?column)))
+	=>
+	(retract ?h)
+	;(printout t "Remove percepts" crlf)
+	)
+
+(defrule removeHeading
+	?h<-(heading $?)
+	=>
+	(retract ?h)
+	;(printout t "Remove heading" crlf)
+	)
+
+(defrule removeFiring
+	?h<-(firing $?)
+	=>
+	(retract ?h)
+	;(printout t "Remove firing" crlf)
+	)
+
+(defrule removeCheat
+	?h<-(cheat $?)
+	=>
+	(retract ?h)
+	;(printout t "Remove cheat" crlf)
+	)
+
+(defrule removedied
+	?h<-(died $?)
+	=>
+	(retract ?h)
+	;(printout t "Remove died" crlf)
+	)
+
+(defrule removewon
+	?h<-(won $?)
+	=>
+	(retract ?h)
+	;(printout t "Remove won" crlf)
+	)
+
+
