@@ -1,0 +1,148 @@
+# ubuntu 14.04 LTS with Java 1.8.0_45
+
+.PHONY: clean libCLIPSJNI.so
+
+JAVA_TARGET = 1.9
+JNI_CP = net/sf/clipsrules/jni
+JNI_CLASS = net.sf.clipsrules.jni.Environment
+JNI_BIN = bin/clipsjni
+JAVA_SRC = ../java-src
+JNI_SRC = $(JAVA_SRC)/$(JNI_CP)
+JNI_DST = $(JNI_BIN)/$(JNI_CP)
+JNI_FILES = \
+	$(JNI_SRC)/Environment.java \
+	$(JNI_SRC)/FactAddressValue.java \
+	$(JNI_SRC)/FloatValue.java \
+	$(JNI_SRC)/InstanceAddressValue.java \
+	$(JNI_SRC)/InstanceNameValue.java \
+	$(JNI_SRC)/InstanceValue.java \
+	$(JNI_SRC)/IntegerValue.java \
+	$(JNI_SRC)/LexemeValue.java \
+	$(JNI_SRC)/MultifieldValue.java \
+	$(JNI_SRC)/NumberValue.java \
+	$(JNI_SRC)/PrimitiveValue.java \
+	$(JNI_SRC)/Router.java \
+	$(JNI_SRC)/StringValue.java \
+	$(JNI_SRC)/SymbolValue.java \
+	$(JNI_SRC)/VoidValue.java
+
+ANIMAL_CP = net/sf/clipsrules/jni/examples/animal
+ANIMAL_CLASS = net.sf.clipsrules.jni.examples.animal.AnimalDemo
+ANIMAL_SRC = $(JAVA_SRC)/$(ANIMAL_CP)
+ANIMAL_BIN = bin/animal
+ANIMAL_DST = $(ANIMAL_BIN)/$(ANIMAL_CP)
+ANIMAL_RSRC_SRC = $(ANIMAL_SRC)/resources
+ANIMAL_RSRC_DST = $(ANIMAL_BIN)/$(ANIMAL_CP)/resources
+
+WILLY_CP = net/sf/clipsrules/jni/examples/willy
+WILLY_CLASS = net.sf.clipsrules.jni.examples.willy.WillyDemo
+WILLY_SRC = $(JAVA_SRC)/$(WILLY_CP)
+WILLY_BIN = bin/willy
+WILLY_DST = $(WILLY_BIN)/$(WILLY_CP)
+WILLY_RSRC_SRC = $(WILLY_SRC)/resources
+WILLY_RSRC_DST = $(WILLY_BIN)/$(WILLY_CP)/resources
+
+AUTO_CP = net/sf/clipsrules/jni/examples/auto
+AUTO_CLASS = net.sf.clipsrules.jni.examples.auto.AutoDemo
+AUTO_SRC = $(JAVA_SRC)/$(AUTO_CP)
+AUTO_BIN = bin/auto
+AUTO_DST = $(AUTO_BIN)/$(AUTO_CP)
+AUTO_RSRC_SRC = $(AUTO_SRC)/resources
+AUTO_RSRC_DST = $(AUTO_BIN)/$(AUTO_CP)/resources
+
+SUDOKU_CP = net/sf/clipsrules/jni/examples/sudoku
+SUDOKU_CLASS = net.sf.clipsrules.jni.examples.sudoku.SudokuDemo
+SUDOKU_SRC = $(JAVA_SRC)/$(SUDOKU_CP)
+SUDOKU_BIN = bin/sudoku
+SUDOKU_DST = $(SUDOKU_BIN)/$(SUDOKU_CP)
+SUDOKU_RSRC_SRC = $(SUDOKU_SRC)/resources
+SUDOKU_RSRC_DST = $(SUDOKU_BIN)/$(SUDOKU_CP)/resources
+
+WINE_CP = net/sf/clipsrules/jni/examples/wine
+WINE_CLASS = net.sf.clipsrules.jni.examples.wine.WineDemo
+WINE_SRC = $(JAVA_SRC)/$(WINE_CP)
+WINE_BIN = bin/wine
+WINE_DST = $(WINE_BIN)/$(WINE_CP)
+WINE_RSRC_SRC = $(WINE_SRC)/resources
+WINE_RSRC_DST = $(WINE_BIN)/$(WINE_CP)/resources
+
+# all: clipsjni animal auto sudoku wine
+all : willy
+
+libCLIPSJNI.so :
+	make -C ../library-src -f makefile.linux
+	cp ../library-src/libCLIPSJNI.so .
+
+clipsjni : 
+	mkdir -p $(JNI_BIN)
+	/usr/lib/jvm/java-9-oracle/bin/javac -source $(JAVA_TARGET) -target $(JAVA_TARGET) -d $(JNI_BIN) $(JNI_FILES)
+	jar -cfe CLIPSJNI.jar $(JNI_CLASS) $(JNI_BIN)/$(JNI_CP)/Environment.class -C $(JNI_BIN) net
+
+willy : clipsjni libCLIPSJNI.so
+	mkdir -p $(WILLY_RSRC_DST)
+	/usr/lib/jvm/java-9-oracle/bin/javac -source $(JAVA_TARGET) -target $(JAVA_TARGET) -d $(WILLY_BIN) -cp CLIPSJNI.jar $(WILLY_SRC)/WillyDemo.java
+	cp -r $(WILLY_RSRC_SRC)/icons $(WILLY_RSRC_DST)
+	cp $(WILLY_RSRC_SRC)/*.properties $(WILLY_RSRC_DST)
+	cp $(WILLY_RSRC_SRC)/context.bin $(WILLY_RSRC_DST)
+	jar -cfe WillyDemo.jar $(WILLY_CLASS) $(WILLY_BIN)/$(WILLY_CP)/WillyDemo.class -C $(WILLY_BIN) net 
+	jar -uf WillyDemo.jar -C $(JNI_BIN) net
+	proguard @../proguardConfig.prog
+
+animal :
+	mkdir -p $(ANIMAL_RSRC_DST)
+	javac -d $(ANIMAL_BIN) -cp CLIPSJNI.jar $(ANIMAL_SRC)/AnimalDemo.java
+	cp $(ANIMAL_RSRC_SRC)/*.properties $(ANIMAL_RSRC_DST)
+	cp $(ANIMAL_RSRC_SRC)/*.clp $(ANIMAL_RSRC_DST)
+	jar -cfe AnimalDemo.jar $(ANIMAL_CLASS) $(ANIMAL_BIN)/$(ANIMAL_CP)/AnimalDemo.class -C $(ANIMAL_BIN) net 
+	jar -uf AnimalDemo.jar -C $(JNI_BIN) net
+
+auto :
+	mkdir -p $(AUTO_RSRC_DST)
+	javac -d $(AUTO_BIN) -cp CLIPSJNI.jar $(AUTO_SRC)/AutoDemo.java
+	cp $(AUTO_RSRC_SRC)/*.properties $(AUTO_RSRC_DST)
+	cp $(AUTO_RSRC_SRC)/*.clp $(AUTO_RSRC_DST)
+	jar -cfe AutoDemo.jar $(AUTO_CLASS) $(AUTO_BIN)/$(AUTO_CP)/AutoDemo.class -C $(AUTO_BIN) net 
+	jar -uf AutoDemo.jar -C $(JNI_BIN) net
+
+sudoku :
+	mkdir -p $(SUDOKU_RSRC_DST)
+	javac -d $(SUDOKU_BIN) -cp CLIPSJNI.jar $(SUDOKU_SRC)/SudokuDemo.java
+	cp $(SUDOKU_RSRC_SRC)/*.properties $(SUDOKU_RSRC_DST)
+	cp $(SUDOKU_RSRC_SRC)/*.clp $(SUDOKU_RSRC_DST)
+	jar -cfe SudokuDemo.jar $(SUDOKU_CLASS) $(SUDOKU_BIN)/$(SUDOKU_CP)/SudokuDemo.class -C $(SUDOKU_BIN) net 
+	jar -uf SudokuDemo.jar -C $(JNI_BIN) net
+
+wine :
+	mkdir -p $(WINE_RSRC_DST)
+	javac -d $(WINE_BIN) -cp CLIPSJNI.jar $(WINE_SRC)/WineDemo.java
+	cp $(WINE_RSRC_SRC)/*.properties $(WINE_RSRC_DST)
+	cp $(WINE_RSRC_SRC)/*.clp $(WINE_RSRC_DST)
+	jar -cfe WineDemo.jar $(WINE_CLASS) $(WINE_BIN)/$(WINE_CP)/WineDemo.class -C $(WINE_BIN) net 
+	jar -uf WineDemo.jar -C $(JNI_BIN) net
+
+clean :
+	rm -f libCLIPSJNI.so
+	rm -f $(JNI_DST)/*.class
+	rm -fr $(JNI_BIN)/net
+	rm -f CLIPSJNI.jar
+	rm -f $(ANIMAL_DST)/*.class
+	rm -f $(ANIMAL_RSRC_DST)/*.*
+	rm -fr $(ANIMAL_BIN)/net
+	rm -f AnimalDemo.jar
+	rm -f $(WILLY_DST)/*.class
+	rm -f $(WILLY_RSRC_DST)/*.*
+	rm -fr $(WILLY_BIN)/net
+	rm -f WillyDemo.jar
+	rm -f $(AUTO_DST)/*.class
+	rm -f $(AUTO_RSRC_DST)/*.*
+	rm -fr $(AUTO_BIN)/net
+	rm -f AutoDemo.jar
+	rm -f $(SUDOKU_DST)/*.class
+	rm -f $(SUDOKU_RSRC_DST)/*.*
+	rm -fr $(SUDOKU_BIN)/net
+	rm -f SudokuDemo.jar
+	rm -f $(WINE_DST)/*.class
+	rm -f $(WINE_RSRC_DST)/*.*
+	rm -fr $(WINE_BIN)/net
+	rm -f WineDemo.jar
+
